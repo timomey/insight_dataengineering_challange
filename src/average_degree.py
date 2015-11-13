@@ -6,6 +6,7 @@
 import json
 import datetime as dt
 import networkx as nx
+import re
 
 #FIRST get the clean data out, like in tweets_cleaned.py
 
@@ -40,6 +41,13 @@ number_tweets_withouttext = 0
 G = nx.Graph()
 #variable to keep track of the oldest entry in the graph. (since it has to <= 60 seconds)
 oldestdate = 0
+########## TEST BLOCK
+tweetfile_handle = open('../tweet_input/tweets.txt','r')
+lines = tweetfile_handle.readlines()
+oneline = lines[10]
+
+#########
+
 with open('../tweet_input/tweets.txt','r') as tweetfile_handle:
     for oneline in tweetfile_handle:
 
@@ -51,6 +59,22 @@ with open('../tweet_input/tweets.txt','r') as tweetfile_handle:
             timestamp = oneline_dict['created_at']
             timestamp = timestamp.encode('ascii')
             date = timestamp_to_datetime(timestamp)
+            #list for the hashtags
+            hashtags = ['#']*len(text_ascii.split('#'))
+            for i in range(1,len(text_ascii.split('#'))):
+                #get the hashtags with this command:
+                #1.: split by hashtags:
+                #take everything after a split (=after a hashtag) and then
+                #2.: split right after the hashtag (-> .split(' ')[0])
+                #save those into graph
+                hashtags[i-1] = text_ascii.split('#')[i].split(' ')[0]
+                print hashtag
+
+
+
+            #OLD APPROACH: get the start of the hashtag:
+            #for m in re.finditer('#', text_ascii):
+            #    hashtag = text_ascii[m.end()]
 
         except KeyError:
             number_tweets_withouttext += 1
