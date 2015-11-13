@@ -7,6 +7,8 @@ import json
 import datetime as dt
 import networkx as nx
 import re
+import matplotlib.pyplot as plt
+import itertools
 
 #FIRST get the clean data out, like in tweets_cleaned.py
 
@@ -48,11 +50,17 @@ oneline = lines[10]
 
 #########
 
+hashtags_1min = {}
+hashtags_1min_date = {}
+tweetnumber = 0
 with open('../tweet_input/tweets.txt','r') as tweetfile_handle:
     for oneline in tweetfile_handle:
-
+        tweetnumber +=1
+        print tweetnumber
         oneline_dict = json.loads(oneline)
+        
         try:
+            G = nx.Graph() # every time build it from scratch.. could be more efficient!
             text_u = oneline_dict['text']
             text_ascii = text_u.encode('ascii','ignore')
             #get timestamp
@@ -60,7 +68,7 @@ with open('../tweet_input/tweets.txt','r') as tweetfile_handle:
             timestamp = timestamp.encode('ascii')
             date = timestamp_to_datetime(timestamp)
             #list for the hashtags
-            hashtags = ['#']*len(text_ascii.split('#'))
+            hashtags = ['#']*(len(text_ascii.split('#'))-1)
             for i in range(1,len(text_ascii.split('#'))):
                 #get the hashtags with this command:
                 #1.: split by hashtags:
@@ -68,13 +76,36 @@ with open('../tweet_input/tweets.txt','r') as tweetfile_handle:
                 #2.: split right after the hashtag (-> .split(' ')[0])
                 #save those into graph
                 hashtags[i-1] = text_ascii.split('#')[i].split(' ')[0]
-                print hashtag
+                #print hashtags[i-1]
 
+            #update hashtag dictionary and date dictionary
+            #if hashtag != []:
+            hashtags_1min[tweetnumber] = hashtags
+            hashtags_1min_date[tweetnumber] = date
+            #remove entries with date that are one minute older than currentdate
+            for key, olddate in hashtags_1min_date.items():
+                if date - olddate > dt.timedelta(0,60):
+                    del hashtags_1min[key]
+                    del hashtags_1min_date[key]
 
+                G.add_edges_from(list(itertools.permutations(hashtags_1min[key],2)))
 
-            #OLD APPROACH: get the start of the hashtag:
-            #for m in re.finditer('#', text_ascii):
-            #    hashtag = text_ascii[m.end()]
+            #print hashtags_1min.keys()
+
+            degrees = G.degree().values()
+            if len(degrees) >0:
+                avedegree = float(sum(degrees))/len(degrees)
+                #one of the 2; second is better, because it ALWAYS has 2 decimal places.
+                avedegree = round(avedegree,2)
+                with open('../tweet_output/ft2.txt', 'a') as output:
+                    result = '%.2f' %avedegree
+                    output.write(result)
+                    output.write('\n')
+            else:
+                with open('../tweet_output/ft2.txt', 'a') as output:
+                    result = '0'
+                    output.write(result)
+                    output.write('\n')
 
         except KeyError:
             number_tweets_withouttext += 1
