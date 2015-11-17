@@ -123,20 +123,21 @@ def make_graph_return_degrees(hashtags_1min, hashtags_1min_date, hashtags_date_t
     degrees = G.degree().values()
     return degrees
 
-class tweet_graph:
-    """graph of hashtags"""
+
+class graph_connections:
     def __init__(self):
-        self.graph_hashtags = {}
-        self.graph_date = {}
+        self.maindict = {}
+        self.degreedict = {}
+        self.maindictcounter = 0
+        self.connectiondict = {}
 
-    def add_hashtags(self, hashtags_date_tuple):
-        self.graph_hashtags
+    def add_tweet2(self, hashtags_date_tuple):
+        self.connectiondict
+        newconnections = itertools.combinations(hashtags_date_tuple[0],2)
+        for conn in newconnections:
+            self.connectiondict[conn] = hashtags_date_tuple[1]
 
-    def clean_old_dates(self):
-        pass
 
-    def get_degree(self):
-        pass
 
 def tweet_avedegree_60sgraph(inputfile, outputfile):
     """
@@ -153,12 +154,17 @@ def tweet_avedegree_60sgraph(inputfile, outputfile):
             a new line in the outputfileselfself.
     """
     number_tweets_withouttext = 0
-    hashtags_1min = {}
-    hashtags_1min_date = {}
+    #hashtags_1min = {}
+    #hashtags_1min_date = {}
+    #hashtag_date = {}
     tweetnumber = 0
+    graphc = graph_connections()
     with open(inputfile,'r') as tweetfile_handle:
         for oneline in tweetfile_handle:
             tweetnumber +=1 #used as a key in the dictionary to save hashtags and dates
+            #if tweetnumber >1000:
+            #    print 'break'
+            #    break
 
             #get hashtags and date from this tweet
             hashtags_date_tuple = tweet_2_hashtags_and_date(oneline)
@@ -169,18 +175,24 @@ def tweet_avedegree_60sgraph(inputfile, outputfile):
                 continue
 
             #update hashtag dictionary and date dictionary
-            hashtags_1min[tweetnumber] = hashtags_date_tuple[0]
-            hashtags_1min_date[tweetnumber] = hashtags_date_tuple[1]
+            #hashtags_1min[tweetnumber] = hashtags_date_tuple[0]
+            #hashtags_1min_date[tweetnumber] = hashtags_date_tuple[1]
+
+            #hashtag_date[tweetnumber] = hashtags_date_tuple
+
+            graphc.add_tweet(hashtags_date_tuple)
+            graphc.remove_old_tweets(hashtags_date_tuple[1],60)
+            degrees = graphc.get_degrees()
 
             #this function is overkill and can be optimized.
-            degrees = make_graph_return_degrees(hashtags_1min, hashtags_1min_date, hashtags_date_tuple)
+            #degrees = make_graph_return_degrees(hashtags_1min, hashtags_1min_date, hashtags_date_tuple)
 
             #calc average degree and write to outputfile.
             #if: for the case that there are no tweets with hashtags (especially at beginning of inputfile.)
             if len(degrees) >0:
                 avedegree = float(sum(degrees))/len(degrees)
                 #one of the 2; second is better, because it ALWAYS has 2 decimal places.
-#                avedegree = round(avedegree,2)
+                #avedegree = round(avedegree,2)
                 with open(outputfile, 'a') as output:
                     result = '%.2f' %avedegree
                     output.write(result)
