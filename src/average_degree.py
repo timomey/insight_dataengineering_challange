@@ -76,6 +76,22 @@ def tweet_2_hashtags_and_date(oneline):
         return notext
 
 
+def make_graph_return_degrees(hashtags_1min, hashtags_1min_date, hashtags_date_tuple):
+    G = nx.Graph() # every time built from scratch.. could be more efficient!
+    #remove entries with date that are one minute older than currentdate
+    #NOTE: this assumes that current date is the newest, which is not true for the
+    #twitter stream since tweets do not come in the exact correct order.
+    for key, olddate in hashtags_1min_date.items():
+        if hashtags_date_tuple[1] - olddate > dt.timedelta(0,60):
+            del hashtags_1min[key]
+            del hashtags_1min_date[key]
+        else:
+            G.add_edges_from(list(itertools.permutations(hashtags_1min[key],2)))
+    #calc degrees and write output
+    degrees = G.degree().values()
+    return degrees
+
+
 
 ########## TEST BLOCK
 #tweetfile_handle = open('./tweet_input/tweets.txt','r')
@@ -108,6 +124,8 @@ def tweet_60sgraph(inputfile, outputfile):
             hashtags_1min[tweetnumber] = hashtags_date_tuple[0]
             hashtags_1min_date[tweetnumber] = hashtags_date_tuple[1]
 
+            #degrees = make_graph_return_degrees(hashtags_1min, hashtags_1min_date, hashtags_date_tuple)
+
             G = nx.Graph() # every time built from scratch.. could be more efficient!
             #remove entries with date that are one minute older than currentdate
             #NOTE: this assumes that current date is the newest, which is not true for the
@@ -118,9 +136,9 @@ def tweet_60sgraph(inputfile, outputfile):
                     del hashtags_1min_date[key]
                 else:
                     G.add_edges_from(list(itertools.permutations(hashtags_1min[key],2)))
-
             #calc degrees and write output
             degrees = G.degree().values()
+
             if len(degrees) >0:
                 avedegree = float(sum(degrees))/len(degrees)
                 #one of the 2; second is better, because it ALWAYS has 2 decimal places.
