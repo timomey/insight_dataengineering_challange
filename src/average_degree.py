@@ -1,21 +1,25 @@
 #!/usr/bin/env python
-#this script creates a graph of tweets of the last 60 seconds. It does not use the cleaned data created
-#by tweets_cleaned.py, because saving subresults in a file is unneccesary and would slow down the process.
-#Especially if this will be used to directly work on an incoming stream of tweets it needs to be perfomant.
+
 
 import json
 import datetime as dt
 import networkx as nx
-#import re
-#import matplotlib.pyplot as plt
 import itertools
 import sys
 
-#FIRST get the clean data out, like in tweets_cleaned.py
-
-#this function cleans strings of unicode, replaces a few things, strips strings from spaces at end and beginning,
-#and removes multiple spaces.
 def clean_string(text):
+    """input: string. output is a "clean" string:
+            1: spaces at end and beginning are removed:
+                                ' input ' -> 'input'
+            2: replacements:    "\/" -> "/"
+                                "\\" -> "\ "
+                                "\'" -> "'"
+                                '\"' -> '"'
+                                "\n" -> " ")
+                                "\t" -> " "
+            3: multiple spaces are replaced by one.
+                                "input      string" -> "input string"
+            """
     text.strip()
     text.replace("\/", "/")
     text.replace("\\", "\ ")
@@ -26,8 +30,11 @@ def clean_string(text):
     text = " ".join(text.split())
     return text
 
-#transform the timestamp strings from tweets to datetime.datetime objects for easy time handling
 def timestamp_to_datetime(timestamp):
+    """
+    input: timestamp string from twitter API ('created_at' value example: 'Fri Oct 30 15:29:44 +0000 2015')
+    returns the corresponding datetime.datetime object for easy time handling.
+    """
     yr = int(timestamp.split(' ')[5])
     m = month_abbr2int(timestamp.split(' ')[1])
     d = int(timestamp.split(' ')[2])
@@ -39,6 +46,11 @@ def timestamp_to_datetime(timestamp):
     return datetime_object
 
 def month_abbr2int(m_abbr):
+    """
+    input: String: 3 letter abbreviation of month. (example: 'Jan')
+            not case sensitive.
+    returns: integer corresponding to the month. (example: 'Jan' -> 1)
+    """
     months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec']
     m=0
     for iter in months:
@@ -47,7 +59,17 @@ def month_abbr2int(m_abbr):
             return m
 
 def tweet_2_hashtags_and_date(oneline):
-    """input(oneline): tweet in json format as string"""
+    """
+    input: tweet in json format as string as received from twitter API
+    output: tuple (hashtags, date)
+            hashtags is a list of all hashtags that are in the tweet.
+            date is the datetime.datetime object corresponding to the timestamp of that tweet.
+
+            (example output:    (hashtags, date) with:
+                                hashtags = ['first', 'tweet']
+                                date = datetime.datetime(2015, 10, 30, 15, 29, 44)
+
+    """
     oneline_dict = json.loads(oneline)
     try:
         text_u = oneline_dict['text']
@@ -77,40 +99,66 @@ def tweet_2_hashtags_and_date(oneline):
 
 
 def make_graph_return_degrees(hashtags_1min, hashtags_1min_date, hashtags_date_tuple):
+    """
+    input:  1: dictionary of hashtags that have timestamps within 1 min. from the current timestamp.
+                (keys have to correspond to dates dicitonary!)
+            2: dictionary of dates corresponding to the hashtags.
+                (keys have to correspond to hashtags dicitonary!)
+            3: current hashtags_date_tuple as resulted from function tweet_2_hashtags_and_date.
+                only to have the date of the last tweet.
+    """
     G = nx.Graph() # every time built from scratch.. could be more efficient!
     #remove entries with date that are one minute older than currentdate
-    #NOTE: this assumes that current date is the newest, which is not true for the
+    #NOTE: this assumes that current date is the newest, which is not true for the real
     #twitter stream since tweets do not come in the exact correct order.
     for key, olddate in hashtags_1min_date.items():
         if hashtags_date_tuple[1] - olddate > dt.timedelta(0,60):
             del hashtags_1min[key]
             del hashtags_1min_date[key]
         else:
+            #calculate all parmutations of pairs. only have of them are actually needed to add the edges since A-B = B-A
+            #->(room for imporvement)
             G.add_edges_from(list(itertools.permutations(hashtags_1min[key],2)))
     #calc degrees and write output
     degrees = G.degree().values()
     return degrees
 
+class tweet_graph:
+    """graph of hashtags"""
+    def __init__(self):
+        self.graph_hashtags = {}
+        self.graph_date = {}
 
+    def add_hashtags(self, hashtags_date_tuple):
+        self.graph_hashtags
 
-########## TEST BLOCK
-#tweetfile_handle = open('./tweet_input/tweets.txt','r')
-#lines = tweetfile_handle.readlines()
-#oneline = lines[10]
+    def clean_old_dates(self):
+        pass
 
-#########
-def tweet_60sgraph(inputfile, outputfile):
+    def get_degree(self):
+        pass
+
+def tweet_avedegree_60sgraph(inputfile, outputfile):
+    """
+    input:  1: location of input file
+                has to exist and should contain data from the twitter API: 1 json stirngs corresponding to a tweet per line.
+            2: location of output file
+                if the file already exists, results are saved in new lines below existing content.
+                if it does not exist, it is created.
+
+            locations relative to where python is running.
+
+    output: the average degree of nodes of hashtags graph during last 60 seconds.
+            this number is generated for every tweet in the input file and is saved to
+            a new line in the outputfileselfself.
+    """
     number_tweets_withouttext = 0
-    #variable to keep track of the oldest entry in the graph. (since it has to <= 60 seconds)
-    #oldestdate = 0
     hashtags_1min = {}
     hashtags_1min_date = {}
     tweetnumber = 0
     with open(inputfile,'r') as tweetfile_handle:
         for oneline in tweetfile_handle:
-            #just to see progress.
-            #tweetnumber +=1
-            #print tweetnumber
+            tweetnumber +=1 #used as a key in the dictionary to save hashtags and dates
 
             #get hashtags and date from this tweet
             hashtags_date_tuple = tweet_2_hashtags_and_date(oneline)
@@ -124,25 +172,15 @@ def tweet_60sgraph(inputfile, outputfile):
             hashtags_1min[tweetnumber] = hashtags_date_tuple[0]
             hashtags_1min_date[tweetnumber] = hashtags_date_tuple[1]
 
-            #degrees = make_graph_return_degrees(hashtags_1min, hashtags_1min_date, hashtags_date_tuple)
+            #this function is overkill and can be optimized.
+            degrees = make_graph_return_degrees(hashtags_1min, hashtags_1min_date, hashtags_date_tuple)
 
-            G = nx.Graph() # every time built from scratch.. could be more efficient!
-            #remove entries with date that are one minute older than currentdate
-            #NOTE: this assumes that current date is the newest, which is not true for the
-            #twitter stream since tweets do not come in the exact correct order.
-            for key, olddate in hashtags_1min_date.items():
-                if hashtags_date_tuple[1] - olddate > dt.timedelta(0,60):
-                    del hashtags_1min[key]
-                    del hashtags_1min_date[key]
-                else:
-                    G.add_edges_from(list(itertools.permutations(hashtags_1min[key],2)))
-            #calc degrees and write output
-            degrees = G.degree().values()
-
+            #calc average degree and write to outputfile.
+            #if: for the case that there are no tweets with hashtags (especially at beginning of inputfile.)
             if len(degrees) >0:
                 avedegree = float(sum(degrees))/len(degrees)
                 #one of the 2; second is better, because it ALWAYS has 2 decimal places.
-                avedegree = round(avedegree,2)
+#                avedegree = round(avedegree,2)
                 with open(outputfile, 'a') as output:
                     result = '%.2f' %avedegree
                     output.write(result)
@@ -157,5 +195,4 @@ def tweet_60sgraph(inputfile, outputfile):
 if __name__ == '__main__':
     inputfile = sys.argv[1]
     outputfile = sys.argv[2]
-    tweet_60sgraph(inputfile, outputfile)
-    #print str(number_tweets_withouttext) + ' tweets where left out, because they had no text.'
+    tweet_avedegree_60sgraph(inputfile, outputfile)

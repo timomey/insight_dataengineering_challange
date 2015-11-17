@@ -69,6 +69,7 @@ def extract_and_format(inputfile, outputfile):
     #print the counters
     unicodeleftout = str(numberunicodetweets) + ' tweets contained unicode.'
     keyerrorcount = str(numberleftout) + ' tweets left out because of missing data/empty tweet.'
+    print '\n'
     print unicodeleftout
     print keyerrorcount
     #attach number of unicode tweets to result
@@ -80,4 +81,5 @@ if __name__ == '__main__':
     inputfile = sys.argv[1]
     outputfile = sys.argv[2]
     extract_and_format(inputfile, outputfile)
+    print '\n'
     print 'tweets extracted from ' + str(inputfile) + ' and saved in ' + str(outputfile)
