@@ -29,7 +29,7 @@ def clean_string(text):
 #transform the timestamp strings from tweets to datetime.datetime objects for easy time handling
 def timestamp_to_datetime(timestamp):
     yr = int(timestamp.split(' ')[5])
-        m = month_abbr2int(timestamp.split(' ')[1])
+    m = month_abbr2int(timestamp.split(' ')[1])
     d = int(timestamp.split(' ')[2])
     time = timestamp.split(' ')[3]
     hr = int(time.split(':')[0])
@@ -78,63 +78,66 @@ def tweet_2_hashtags_and_date(oneline):
 
 
 ########## TEST BLOCK
-tweetfile_handle = open('./tweet_input/tweets.txt','r')
-lines = tweetfile_handle.readlines()
-oneline = lines[10]
+#tweetfile_handle = open('./tweet_input/tweets.txt','r')
+#lines = tweetfile_handle.readlines()
+#oneline = lines[10]
 
 #########
+def tweet_60sgraph(inputfile, outputfile):
+    number_tweets_withouttext = 0
+    #variable to keep track of the oldest entry in the graph. (since it has to <= 60 seconds)
+    #oldestdate = 0
+    hashtags_1min = {}
+    hashtags_1min_date = {}
+    tweetnumber = 0
+    with open(inputfile,'r') as tweetfile_handle:
+        for oneline in tweetfile_handle:
+            #just to see progress.
+            #tweetnumber +=1
+            #print tweetnumber
 
-number_tweets_withouttext = 0
-#variable to keep track of the oldest entry in the graph. (since it has to <= 60 seconds)
-oldestdate = 0
-hashtags_1min = {}
-hashtags_1min_date = {}
-tweetnumber = 0
-with open('./tweet_input/tweets.txt','r') as tweetfile_handle:
-    for oneline in tweetfile_handle:
-        tweetnumber +=1
-        print tweetnumber
+            #get hashtags and date from this tweet
+            hashtags_date_tuple = tweet_2_hashtags_and_date(oneline)
 
-        #get hashtags and date from this tweet
-        hashtags_date_tuple = tweet_2_hashtags_and_date(oneline)
+            #if this was an empty tweet -> go straight to next iteration
+            if hashtags_date_tuple == 1:
+                number_tweets_withouttext +=1
+                continue
 
-        #if this was an empty tweet -> go straight to next iteration
-        if hashtags_date_tuple == 1:
-            number_tweets_withouttext +=1
-            continue
+            #update hashtag dictionary and date dictionary
+            hashtags_1min[tweetnumber] = hashtags_date_tuple[0]
+            hashtags_1min_date[tweetnumber] = hashtags_date_tuple[1]
 
-        #update hashtag dictionary and date dictionary
-        hashtags_1min[tweetnumber] = hashtags_date_tuple[0]
-        hashtags_1min_date[tweetnumber] = hashtags_date_tuple[1]
+            G = nx.Graph() # every time built from scratch.. could be more efficient!
+            #remove entries with date that are one minute older than currentdate
+            #NOTE: this assumes that current date is the newest, which is not true for the
+            #twitter stream since tweets do not come in the exact correct order.
+            for key, olddate in hashtags_1min_date.items():
+                if hashtags_date_tuple[1] - olddate > dt.timedelta(0,60):
+                    del hashtags_1min[key]
+                    del hashtags_1min_date[key]
+                else:
+                    G.add_edges_from(list(itertools.permutations(hashtags_1min[key],2)))
 
-        G = nx.Graph() # every time build it from scratch.. could be more efficient!
-        #remove entries with date that are one minute older than currentdate
-        for key, olddate in hashtags_1min_date.items():
-            if date - olddate > dt.timedelta(0,60):
-                del hashtags_1min[key]
-                del hashtags_1min_date[key]
-
-            G.add_edges_from(list(itertools.permutations(hashtags_1min[key],2)))
-
-        #calc degrees and write output
-        degrees = G.degree().values()
-        if len(degrees) >0:
-            avedegree = float(sum(degrees))/len(degrees)
-            #one of the 2; second is better, because it ALWAYS has 2 decimal places.
-            avedegree = round(avedegree,2)
-            with open('../tweet_output/ft2.txt', 'a') as output:
-                result = '%.2f' %avedegree
-                output.write(result)
-                output.write('\n')
-        else:
-            with open('../tweet_output/ft2.txt', 'a') as output:
-                result = '0'
-                output.write(result)
-                output.write('\n')
+            #calc degrees and write output
+            degrees = G.degree().values()
+            if len(degrees) >0:
+                avedegree = float(sum(degrees))/len(degrees)
+                #one of the 2; second is better, because it ALWAYS has 2 decimal places.
+                avedegree = round(avedegree,2)
+                with open(outputfile, 'a') as output:
+                    result = '%.2f' %avedegree
+                    output.write(result)
+                    output.write('\n')
+            else:
+                with open(outputfile, 'a') as output:
+                    result = '0'
+                    output.write(result)
+                    output.write('\n')
 
 
 if __name__ == '__main__':
     inputfile = sys.argv[1]
     outputfile = sys.argv[2]
-
-    print str(number_tweets_withouttext) + ' tweets where left out, because they had no text.'
+    tweet_60sgraph(inputfile, outputfile)
+    #print str(number_tweets_withouttext) + ' tweets where left out, because they had no text.'
