@@ -1,9 +1,15 @@
 inputfile = '../tweet_input/tweets_10min.txt'
 outputfile = '../tweet_output/tweets_10min_degree_3.txt'
+number_tweets_withouttext = 0
+    #hashtags_1min = {}
+    #hashtags_1min_date = {}
+    #hashtag_date = {}
+tweetnumber = 0
+graphc = graph_connections()
 with open(inputfile,'r') as tweetfile_handle:
     for oneline in tweetfile_handle:
         tweetnumber +=1 #used as a key in the dictionary to save hashtags and dates
-        if tweetnumber >1000:
+        if tweetnumber >5000:
             print 'break'
             break
 

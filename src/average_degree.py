@@ -28,6 +28,7 @@ def clean_string(text):
     text.replace("\n", " ")
     text.replace("\t", " ")
     text = " ".join(text.split())
+    text = text.lower()
     return text
 
 def timestamp_to_datetime(timestamp):
@@ -75,21 +76,24 @@ def tweet_2_hashtags_and_date(oneline):
         text_u = oneline_dict['text']
         text_ascii = text_u.encode('ascii','ignore')
         text_ascii = clean_string(text_ascii)
+        text_ascii = text_ascii.lower()
         #get timestamp
         timestamp = oneline_dict['created_at']
         timestamp = timestamp.encode('ascii')
         date = timestamp_to_datetime(timestamp)
         #list for the hashtags
-        hashtags = ['#']*(len(text_ascii.split('#'))-1)
-        for i in range(1,len(text_ascii.split('#'))):
+        #hashtags = ['#']*(len(text_ascii.split('#'))-1)
+        #for i in range(1,len(text_ascii.split('#'))):
             #get the hashtags with this command:
             #1.: split by hashtags:
             #take everything after a split (=after a hashtag) and then
             #2.: split right after the hashtag (-> .split(' ')[0])
             #save those into graph
-            hashtags[i-1] = text_ascii.split('#')[i].split(' ')[0]
+        #    hashtags[i-1] = text_ascii.split('#')[i].split(' ')[0]
             #print hashtags[i-1]
 
+        hashtags = map(lambda x: x.split(' ')[0], text_ascii.split('#'))
+        hashtags = hashtags[1:]
         #update hashtag dictionary and date dictionary
         #if hashtag != []:
         return (hashtags, date)
@@ -97,32 +101,6 @@ def tweet_2_hashtags_and_date(oneline):
         #number_tweets_withouttext += 1
         notext = 1
         return notext
-
-
-def make_graph_return_degrees(hashtags_1min, hashtags_1min_date, hashtags_date_tuple):
-    """
-    input:  1: dictionary of hashtags that have timestamps within 1 min. from the current timestamp.
-                (keys have to correspond to dates dicitonary!)
-            2: dictionary of dates corresponding to the hashtags.
-                (keys have to correspond to hashtags dicitonary!)
-            3: current hashtags_date_tuple as resulted from function tweet_2_hashtags_and_date.
-                only to have the date of the last tweet.
-    """
-    G = nx.Graph() # every time built from scratch.. could be more efficient!
-    #remove entries with date that are one minute older than currentdate
-    #NOTE: this assumes that current date is the newest, which is not true for the real
-    #twitter stream since tweets do not come in the exact correct order.
-    for key, olddate in hashtags_1min_date.items():
-        if hashtags_date_tuple[1] - olddate > dt.timedelta(0,60):
-            del hashtags_1min[key]
-            del hashtags_1min_date[key]
-        else:
-            #calculate all parmutations of pairs. only have of them are actually needed to add the edges since A-B = B-A
-            #->(room for imporvement)
-            G.add_edges_from(list(itertools.permutations(hashtags_1min[key],2)))
-    #calc degrees and write output
-    degrees = G.degree().values()
-    return degrees
 
 
 class graph_connections:
@@ -143,7 +121,7 @@ class graph_connections:
             self.connectiondict[tuple(edge)] = hashtags_date_tuple[1]
 
     def remove_old_tweets(self, date, time_period):
-        #dict comprehension: if the value()/date is older than time_period -> entry stays in dictionary.
+        #dict comprehension: if the value()/date is older than time_period -> entry stays not in dictionary.
         newdict = { k:v for k,v in self.connectiondict.items() if date - v < dt.timedelta(0,time_period)}
         #print newdict
         #keys that were deleted:
@@ -152,8 +130,9 @@ class graph_connections:
             for vertex in edge:
                 if vertex in self.degreedict.keys(): #single hashtags could be here, but are not in degreedict.
                     self.degreedict[vertex] -=1
-                    if self.degreedict[vertex] == 0:
+                    if self.degreedict[vertex] <= 0:
                         del self.degreedict[vertex]
+        self.connectiondict = newdict
 
     def get_degrees(self):
         return self.degreedict.values()
@@ -173,29 +152,27 @@ def tweet_avedegree_60sgraph(inputfile, outputfile):
             a new line in the outputfileselfself.
     """
     number_tweets_withouttext = 0
-    #hashtags_1min = {}
-    #hashtags_1min_date = {}
-    #hashtag_date = {}
+
     tweetnumber = 0
     graphc = graph_connections()
     with open(inputfile,'r') as tweetfile_handle:
         for oneline in tweetfile_handle:
             tweetnumber +=1 #used as a key in the dictionary to save hashtags and dates
-            #if tweetnumber >1000:
-            #    print 'break'
-            #    break
 
             #get hashtags and date from this tweet
             hashtags_date_tuple = tweet_2_hashtags_and_date(oneline)
+
 
             #if this was an empty tweet -> go straight to next iteration
             if hashtags_date_tuple == 1:
                 number_tweets_withouttext +=1
                 continue
 
+            hashtags_date_tuple[0].sort()
+
             #update hashtag dictionary and date dictionary
-            #hashtags_1min[tweetnumber] = hashtags_date_tuple[0]
-            #hashtags_1min_date[tweetnumber] = hashtags_date_tuple[1]
+            hashtags_1min[tweetnumber] = hashtags_date_tuple[0]
+            hashtags_1min_date[tweetnumber] = hashtags_date_tuple[1]
 
             #hashtag_date[tweetnumber] = hashtags_date_tuple
 
@@ -203,8 +180,8 @@ def tweet_avedegree_60sgraph(inputfile, outputfile):
             graphc.remove_old_tweets(hashtags_date_tuple[1],60)
             degrees = graphc.get_degrees()
 
-            #this function is overkill and can be optimized.
-            #degrees = make_graph_return_degrees(hashtags_1min, hashtags_1min_date, hashtags_date_tuple)
+            if tweetnumber == 8000:
+                print(degrees)
 
             #calc average degree and write to outputfile.
             #if: for the case that there are no tweets with hashtags (especially at beginning of inputfile.)
