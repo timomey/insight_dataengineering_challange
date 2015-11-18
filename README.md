@@ -11,7 +11,9 @@ to use, call:
   python ./src/tweets_cleaned inputfile outputfile
 
 packages used and needed:
+
   json
+
   sys
 
 2: src/average_degree.py
@@ -19,7 +21,11 @@ to use, call:
   python ./src/average_degree.py inputfile outputfile
 
 packages used and needed:
+
   json
+
   datetime
+
   itertools
+
   sys
