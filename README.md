@@ -1,3 +1,6 @@
+programmed for InsightDataScience coding challenge
+( https://github.com/InsightDataScience/coding-challenge )
+
 to run the files in the src folder, use python 2.7.10
 
 note: input and output files are relative to where python is running.
