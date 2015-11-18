@@ -80,24 +80,12 @@ def tweet_2_hashtags_and_date(oneline):
         timestamp = oneline_dict['created_at']
         timestamp = timestamp.encode('ascii')
         date = timestamp_to_datetime(timestamp)
-        #list for the hashtags
-        #hashtags = ['#']*(len(text_ascii.split('#'))-1)
-        #for i in range(1,len(text_ascii.split('#'))):
-            #get the hashtags with this command:
-            #1.: split by hashtags:
-            #take everything after a split (=after a hashtag) and then
-            #2.: split right after the hashtag (-> .split(' ')[0])
-            #save those into graph
-        #    hashtags[i-1] = text_ascii.split('#')[i].split(' ')[0]
-            #print hashtags[i-1]
 
+        #instead of loop: map. get the hashtags out.
         hashtags = map(lambda x: x.split(' ')[0], text_ascii.split('#'))
         hashtags = hashtags[1:]
-        #update hashtag dictionary and date dictionary
-        #if hashtag != []:
         return (hashtags, date)
     except KeyError:
-        #number_tweets_withouttext += 1
         notext = 1
         return notext
 
@@ -184,18 +172,13 @@ def tweet_avedegree_60sgraph(inputfile, outputfile):
 
             hashtags_date_tuple[0].sort()
 
-            #update hashtag dictionary and date dictionary
-            hashtags_1min[tweetnumber] = hashtags_date_tuple[0]
-            hashtags_1min_date[tweetnumber] = hashtags_date_tuple[1]
-
-            #hashtag_date[tweetnumber] = hashtags_date_tuple
 
             graphc.add_tweet(hashtags_date_tuple)
             graphc.remove_old_tweets(hashtags_date_tuple[1],60)
             degrees = graphc.get_degrees()
 
             if tweetnumber == 8000:
-                print(degrees)
+                print graphc.degreedict.keys()
 
             #calc average degree and write to outputfile.
             #if: for the case that there are no tweets with hashtags (especially at beginning of inputfile.)

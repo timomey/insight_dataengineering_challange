@@ -81,5 +81,5 @@ if __name__ == '__main__':
     inputfile = sys.argv[1]
     outputfile = sys.argv[2]
     extract_and_format(inputfile, outputfile)
-    print '\n'
-    print 'tweets extracted from ' + str(inputfile) + ' and saved in ' + str(outputfile)
+    #print '\n'
+    #print 'tweets extracted from ' + str(inputfile) + ' and saved in ' + str(outputfile)
