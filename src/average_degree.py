@@ -3,7 +3,6 @@
 
 import json
 import datetime as dt
-import networkx as nx
 import itertools
 import sys
 
@@ -104,6 +103,21 @@ def tweet_2_hashtags_and_date(oneline):
 
 
 class graph_connections:
+    """
+    this class keeps track of the graph.
+    it has two dictionaries. degreedict and connectiondict.
+    degreedict keeps track of the degree of each node.
+        the keys are the names of the nodes and values are the number of connections.
+        (example: #test with 5 connections -> degreedict['test'] = 5)
+    connectiondict keeps track of all edges in the graph.
+        keys are tuple of two connecting hashtags.
+        values are the corresponding datetime_object.
+        example: if #test and #hashtag have been mentioned in the same tweet:
+            connectiondict[('test', 'hashtag')] = datetime_object
+            with the corresponding datetime_object.
+
+    methods: self explanatory: add_tweet, remove_old_tweets, get_degrees
+    """
     def __init__(self):
         self.degreedict = {}
         self.connectiondict = {}

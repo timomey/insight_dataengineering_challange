@@ -18,6 +18,5 @@ to use, call:
 packages used and needed:
   json
   datetime
-  networkx
   itertools
   sys
