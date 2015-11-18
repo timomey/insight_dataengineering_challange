@@ -74,6 +74,7 @@ def tweet_2_hashtags_and_date(oneline):
     try:
         text_u = oneline_dict['text']
         text_ascii = text_u.encode('ascii','ignore')
+        text_ascii = clean_string(text_ascii)
         #get timestamp
         timestamp = oneline_dict['created_at']
         timestamp = timestamp.encode('ascii')
@@ -126,18 +127,36 @@ def make_graph_return_degrees(hashtags_1min, hashtags_1min_date, hashtags_date_t
 
 class graph_connections:
     def __init__(self):
-        self.maindict = {}
         self.degreedict = {}
-        self.maindictcounter = 0
         self.connectiondict = {}
 
-    def add_tweet2(self, hashtags_date_tuple):
-        self.connectiondict
+    def add_tweet(self, hashtags_date_tuple):
         newconnections = itertools.combinations(hashtags_date_tuple[0],2)
-        for conn in newconnections:
-            self.connectiondict[conn] = hashtags_date_tuple[1]
+        for edge in newconnections:
+            if tuple(edge) not in self.connectiondict.keys(): #if edge does not exist yet.
+                for vertex in edge: #add the degree counter +1 for each one
+                    if vertex in self.degreedict.keys(): #either it already exists:
+                        self.degreedict[vertex] +=1
+                    else:                           #or not yet.
+                        self.degreedict[vertex] = 1
+            #in any case, update the time for the edge:
+            self.connectiondict[tuple(edge)] = hashtags_date_tuple[1]
 
+    def remove_old_tweets(self, date, time_period):
+        #dict comprehension: if the value()/date is older than time_period -> entry stays in dictionary.
+        newdict = { k:v for k,v in self.connectiondict.items() if date - v < dt.timedelta(0,time_period)}
+        #print newdict
+        #keys that were deleted:
+        diff = list(set(self.connectiondict.keys()) - set(newdict.keys()))
+        for edge in diff:
+            for vertex in edge:
+                if vertex in self.degreedict.keys(): #single hashtags could be here, but are not in degreedict.
+                    self.degreedict[vertex] -=1
+                    if self.degreedict[vertex] == 0:
+                        del self.degreedict[vertex]
 
+    def get_degrees(self):
+        return self.degreedict.values()
 
 def tweet_avedegree_60sgraph(inputfile, outputfile):
     """
